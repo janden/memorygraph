@@ -44,7 +44,7 @@ bytes = []; estclock = []; cput = []; cpuu = [];
 
 tempfile = 'memorygraph.tmp';  % hard-coded; hope doesn't overwrite something
 if nargin<2, opts=[]; end
-persistent dt
+persistent dt top_pid
 
 % decide what unix process name to search for...
 if exist('OCTAVE_VERSION', 'builtin'), parent='octave';
@@ -57,6 +57,9 @@ if strcmp(s,'start')
   system(sprintf('top -b -u %s -d %.1f -n 100000 | grep --line-buffered %s > %s &',user,dt,parent,tempfile));
   % change -n here for longest run; mostly to prevent running forever.
   % line-buffering needed otherwise have to wait for 4kB chunks.
+
+  [~, output] = system(sprintf('lsof -F pf -- %s | grep "^p" | cut -c2-', tempfile));
+  top_pid = str2double(output);
   
 elseif strcmp(s,'get')
   empty = true; count = 0;   % if no file yet, wait a bit...
@@ -90,7 +93,7 @@ elseif strcmp(s,'get')
   end
 
 elseif strcmp(s,'done')
-  system('killall top');                 % so lame! But how get the true PID?
+  system(sprintf('kill %d', top_pid));
   system(sprintf('rm -f %s',tempfile));
   
 else error('unknown usage');
